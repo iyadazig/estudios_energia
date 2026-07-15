@@ -1,0 +1,44 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Byte-compiled / caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Base de datos local
+db.sqlite3
+db.sqlite3-journal
+
+# Copias de seguridad de la base de datos (datos, no código)
+backups/
+
+# Archivos estáticos recolectados (se generan con collectstatic)
+staticfiles/
+
+# Medias subidas
+media/
+
+# Variables de entorno y secretos
+.env
+.env.local
+.env.*.local
+
+# Cobertura de tests
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDEs y SO
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Plantillas Excel de trabajo (no versionar las que rellenan los clientes)
+*_rellenado.xlsx
+~$*.xlsx

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Importar CUPS · {{ expediente.codigo }}{% endblock %}
+{% block contenido %}
+<div class="tarjeta tarjeta-form tarjeta-form--lg">
+  <div class="tarjeta-cabecera"><h2>Importar puntos de suministro</h2></div>
+  <p class="texto-suave">{{ expediente.codigo }} · {{ expediente.cliente_razon_social }}</p>
+
+  <ol class="pasos">
+    <li>
+      <span class="paso-titulo">Descarga la plantilla en blanco</span>
+      <p class="paso-texto">El archivo Excel con las hojas <strong>Suministros</strong> y <strong>Consumos</strong> que tienes que rellenar.</p>
+      <a class="boton boton--secundario" href="{% url 'plantilla_estudio' %}">⬇ Descargar plantilla</a>
+    </li>
+    <li>
+      <span class="paso-titulo">Rellena los datos de los CUPS y los consumos</span>
+      <p class="paso-texto">Completa la hoja <strong>Suministros</strong> (un CUPS por fila) y la hoja
+        <strong>Consumos</strong> (12 meses por CUPS). La hoja <em>Cliente</em> no hace falta aquí:
+        los datos se añaden a este expediente. Si el expediente ya tiene CUPS, puedes subir un archivo
+        <strong>solo con los nuevos</strong>: los que ya existan se omiten automáticamente.</p>
+    </li>
+    <li>
+      <span class="paso-titulo">Sube el archivo relleno</span>
+      <form method="post" enctype="multipart/form-data" class="subida">
+        {% csrf_token %}
+        {{ form.fichero.errors }}
+        <input type="file" name="fichero" accept=".xlsx" required>
+        <div class="acciones">
+          <button type="submit" class="boton">⇪ Importar CUPS y consumos</button>
+          <a class="boton--enlace" href="{% url 'expediente_detalle' expediente.pk %}">Cancelar</a>
+        </div>
+      </form>
+    </li>
+  </ol>
+</div>
+
+{% if resultado and resultado.errores %}
+<div class="tarjeta tarjeta-form tarjeta-form--lg">
+  <div class="alerta alerta--error">
+    <h3>No se ha importado: corrige estos errores</h3>
+    <ul>{% for e in resultado.errores %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% if resultado.avisos %}
+  <div class="alerta alerta--aviso">
+    <h3>Avisos</h3>
+    <ul>{% for a in resultado.avisos %}<li>{{ a }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

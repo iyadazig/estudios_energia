@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block titulo %}Oferta · {{ expediente.codigo }}{% endblock %}
+{% block contenido %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>{% if oferta %}Editar oferta {{ oferta.etiqueta }}{% else %}Nueva oferta{% endif %}
+        — {{ expediente.codigo }} {{ expediente.cliente_razon_social }}</h2>
+  </div>
+
+  {% if catalogo %}
+  <form method="get" class="permite-enter filtros-grupo" style="background:var(--gris-claro); padding:var(--e2) var(--e3); border-radius:var(--radio-sm); margin-bottom:var(--e4);">
+    <label style="font-weight:600; margin:0;">Cargar desde catálogo:</label>
+    <select name="catalogo" style="max-width:380px; padding:var(--e2);">
+      <option value="">— elige una oferta guardada —</option>
+      {% for oc in catalogo %}
+        <option value="{{ oc.pk }}" {% if cargado and cargado.pk == oc.pk %}selected{% endif %}>{{ oc.nombre }} · {{ oc.comercializadora }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="boton boton--secundario boton--sm">Cargar</button>
+  </form>
+  {% endif %}
+  {% if cargado %}
+  <div class="alerta alerta--info">
+    <strong>Cargada desde el catálogo: {{ cargado.nombre }}.</strong> Revisa los datos y precios y pulsa «Guardar oferta».
+  </div>
+  {% endif %}
+
+  <form method="post" id="form-oferta">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <div class="campos">
+      {% for campo in form %}
+        {% if 'ssaa_' not in campo.name %}
+          {% if campo.field.widget.input_type == "checkbox" %}
+            <div class="check campo-ancho">
+              {{ campo }}
+              <div>
+                <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                {% if campo.help_text %}<div class="ayuda">{{ campo.help_text }}</div>{% endif %}
+                {{ campo.errors }}
+              </div>
+            </div>
+          {% else %}
+            <div class="campo {% if campo.name == 'observaciones' %}campo-ancho{% endif %}">
+              <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+              {{ campo }}
+              {% if campo.help_text %}<div class="ayuda">{{ campo.help_text }}</div>{% endif %}
+              {{ campo.errors }}
+            </div>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <h3>Servicios de ajuste (SSAA)</h3>
+    <div class="campos">
+      <div class="campo campo-ancho">
+        <label for="{{ form.ssaa_tipo.id_for_label }}">Cómo trata la oferta los SSAA</label>
+        {{ form.ssaa_tipo }}{{ form.ssaa_tipo.errors }}
+      </div>
+      <div class="campo" id="ssaa-modo">
+        <label for="{{ form.ssaa_modo.id_for_label }}">Modo</label>
+        {{ form.ssaa_modo }}
+        <div class="ayuda">{{ form.ssaa_modo.help_text }}</div>{{ form.ssaa_modo.errors }}
+      </div>
+      <div class="campo" id="ssaa-ref-sup">
+        <label for="{{ form.ssaa_ref_superior.id_for_label }}">{{ form.ssaa_ref_superior.label }}</label>
+        {{ form.ssaa_ref_superior }}
+        <div class="ayuda">{{ form.ssaa_ref_superior.help_text }}</div>{{ form.ssaa_ref_superior.errors }}
+      </div>
+      <div class="campo" id="ssaa-ref-inf">
+        <label for="{{ form.ssaa_ref_inferior.id_for_label }}">{{ form.ssaa_ref_inferior.label }}</label>
+        {{ form.ssaa_ref_inferior }}
+        <div class="ayuda">{{ form.ssaa_ref_inferior.help_text }}</div>{{ form.ssaa_ref_inferior.errors }}
+      </div>
+      <div class="campo" id="ssaa-perd-modo">
+        <label for="{{ form.ssaa_perdidas_modo.id_for_label }}">Pérdidas aplicadas al SSAA</label>
+        {{ form.ssaa_perdidas_modo }}{{ form.ssaa_perdidas_modo.errors }}
+      </div>
+      <div class="campo" id="ssaa-perd-pct">
+        <label for="{{ form.ssaa_perdidas_pct.id_for_label }}">{{ form.ssaa_perdidas_pct.label }}</label>
+        {{ form.ssaa_perdidas_pct }}
+        <div class="ayuda">{{ form.ssaa_perdidas_pct.help_text }}</div>{{ form.ssaa_perdidas_pct.errors }}
+      </div>
+      <div class="campo" id="ssaa-apunt">
+        <label for="{{ form.ssaa_apuntamiento.id_for_label }}">{{ form.ssaa_apuntamiento.label }}</label>
+        {{ form.ssaa_apuntamiento }}
+        <div class="ayuda">{{ form.ssaa_apuntamiento.help_text }}</div>{{ form.ssaa_apuntamiento.errors }}
+      </div>
+      <div class="check campo-ancho" id="ssaa-imp">
+        {{ form.ssaa_impuesto_municipal }}
+        <div>
+          <label for="{{ form.ssaa_impuesto_municipal.id_for_label }}">{{ form.ssaa_impuesto_municipal.label }}</label>
+          <div class="ayuda">{{ form.ssaa_impuesto_municipal.help_text }}</div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Precios</h3>
+    {% if not bloques_tarifa %}
+    <div class="alerta alerta--aviso">
+      Este expediente <strong>aún no tiene puntos de suministro</strong>, así que no hay tarifas para
+      las que introducir precios. Primero
+      <a href="{% url 'expediente_importar_puntos' expediente.pk %}">importa los CUPS y consumos</a>,
+      y luego vuelve a crear la oferta.
+    </div>
+    {% else %}
+    <p style="margin:0 0 0.5rem;">
+      <label style="display:inline; font-weight:600;">
+        <input type="radio" name="modo_precios" value="tarifa" {% if modo == 'tarifa' %}checked{% endif %}
+               onclick="modoPrecios('tarifa')" style="width:auto;"> Mismos precios por tarifa <span class="texto-suave">(lo habitual)</span>
+      </label>
+      &nbsp;&nbsp;
+      <label style="display:inline; font-weight:600;">
+        <input type="radio" name="modo_precios" value="cups" {% if modo == 'cups' %}checked{% endif %}
+               onclick="modoPrecios('cups')" style="width:auto;"> Precios distintos por cada CUPS
+      </label>
+    </p>
+    <p class="texto-suave">Energía en €/kWh, potencia en €/kW·año.
+       En 2.0TD use P1–P3 (energía) y P1–P2 (potencia). La potencia solo se usa si arriba marca
+       que la oferta cotiza precio propio de potencia; si no, se aplica el ATR regulado.</p>
+
+    <div id="bloques-tarifa" {% if modo != 'tarifa' %}style="display:none;"{% endif %}>
+      {% for bloque in bloques_tarifa %}{% include "estudios/_bloque_precio.html" %}{% endfor %}
+    </div>
+    <div id="bloques-cups" {% if modo != 'cups' %}style="display:none;"{% endif %}>
+      {% for bloque in bloques_cups %}{% include "estudios/_bloque_precio.html" %}{% endfor %}
+    </div>
+    {% endif %}
+
+    <h3 style="margin-top: var(--e5);">Conceptos adicionales <span class="texto-suave">(FNEE, GdO, regularización SSAA…)</span></h3>
+    {{ formset.management_form }}
+    {{ formset.non_form_errors }}
+    <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr><th>Nombre</th><th>Tipo</th><th>Valor</th><th>Con pérdidas</th><th>× imp. local</th><th>Base IEE</th><th></th></tr>
+      </thead>
+      <tbody id="conceptos-body">
+      {% for f in formset %}
+        <tr>
+          {{ f.id }}
+          <td>{{ f.nombre.errors }}{{ f.nombre }}</td>
+          <td>{{ f.tipo.errors }}{{ f.tipo }}</td>
+          <td>{{ f.valor.errors }}{{ f.valor }}</td>
+          <td style="text-align:center;">{{ f.con_perdidas }}</td>
+          <td style="text-align:center;">{{ f.con_impuesto_local }}</td>
+          <td style="text-align:center;">{{ f.entra_en_iee }}</td>
+          <td style="text-align:center;">
+            {% if f.instance.pk %}<label style="font-weight:400; font-size:0.8rem;">{{ f.DELETE }} quitar</label>
+            {% else %}<button type="button" class="quitar-fila" onclick="quitarFila(this)">✕</button>{% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p><button type="button" class="boton boton--secundario boton--sm" onclick="addConcepto()">+ Añadir concepto</button></p>
+
+    <div class="tarjeta-acciones" style="margin-top: var(--e5);">
+      <button type="submit" class="boton">Guardar oferta</button>
+      <a class="boton--enlace" href="{% url 'expediente_detalle' expediente.pk %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<template id="concepto-empty">
+  <tr>
+    {{ formset.empty_form.id }}
+    <td>{{ formset.empty_form.nombre }}</td>
+    <td>{{ formset.empty_form.tipo }}</td>
+    <td>{{ formset.empty_form.valor }}</td>
+    <td style="text-align:center;">{{ formset.empty_form.con_perdidas }}</td>
+    <td style="text-align:center;">{{ formset.empty_form.con_impuesto_local }}</td>
+    <td style="text-align:center;">{{ formset.empty_form.entra_en_iee }}</td>
+    <td style="text-align:center;"><button type="button" class="quitar-fila" onclick="quitarFila(this)">✕</button></td>
+  </tr>
+</template>
+
+<script>
+  function modoPrecios(m) {
+    document.getElementById('bloques-tarifa').style.display = (m === 'tarifa') ? '' : 'none';
+    document.getElementById('bloques-cups').style.display = (m === 'cups') ? '' : 'none';
+  }
+  function addConcepto() {
+    var total = document.getElementById('id_conceptos-TOTAL_FORMS');
+    var idx = parseInt(total.value);
+    var html = document.getElementById('concepto-empty').innerHTML.replace(/__prefix__/g, idx);
+    var tbody = document.getElementById('conceptos-body');
+    var tmp = document.createElement('tbody');
+    tmp.innerHTML = html.trim();
+    tbody.appendChild(tmp.firstElementChild);
+    total.value = idx + 1;
+  }
+  function quitarFila(btn) {
+    var tr = btn.closest('tr');
+    tr.querySelectorAll('input[type=text], input:not([type]), select').forEach(function (el) { el.value = ''; });
+    tr.style.display = 'none';
+  }
+  function toggleSsaa() {
+    var tipo = document.getElementById('id_ssaa_tipo').value;
+    var detalle = (tipo !== 'incluido');
+    ['ssaa-modo', 'ssaa-perd-modo', 'ssaa-apunt', 'ssaa-imp'].forEach(function (id) {
+      document.getElementById(id).style.display = detalle ? '' : 'none';
+    });
+    document.getElementById('ssaa-ref-sup').style.display = (tipo === 'techo' || tipo === 'banda') ? '' : 'none';
+    document.getElementById('ssaa-ref-inf').style.display = (tipo === 'banda') ? '' : 'none';
+    var modoPerd = document.getElementById('id_ssaa_perdidas_modo').value;
+    document.getElementById('ssaa-perd-pct').style.display = (detalle && modoPerd === 'fija') ? '' : 'none';
+  }
+  document.getElementById('id_ssaa_tipo').addEventListener('change', toggleSsaa);
+  document.getElementById('id_ssaa_perdidas_modo').addEventListener('change', toggleSsaa);
+  toggleSsaa();
+</script>
+{% endblock %}

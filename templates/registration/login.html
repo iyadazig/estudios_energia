@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Acceso · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+<div class="tarjeta tarjeta-form tarjeta-form--sm" style="margin-top: var(--e7);">
+  <div class="login-marca">
+    <img src="{% static 'img/logo-geype.png' %}" alt="GE&amp;PE Ingeniería">
+  </div>
+  <h2 style="text-align:center;">Acceso</h2>
+  {% if form.errors %}<div class="alerta alerta--error">Usuario o contraseña incorrectos.</div>{% endif %}
+  <form method="post" class="permite-enter">
+    {% csrf_token %}
+    <p>
+      <label for="id_username">Usuario</label>
+      <input type="text" name="username" id="id_username" autofocus required>
+    </p>
+    <p>
+      <label for="id_password">Contraseña</label>
+      <input type="password" name="password" id="id_password" required>
+    </p>
+    <button type="submit" class="boton" style="width:100%;">Entrar</button>
+  </form>
+</div>
+{% endblock %}

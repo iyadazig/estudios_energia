@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Estudios Energía GE&amp;PE{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="icon" href="{% static 'img/favicon-32.png' %}" sizes="32x32">
+  <link rel="icon" href="{% static 'img/favicon.ico' %}" sizes="any">
+  <link rel="apple-touch-icon" href="{% static 'img/apple-touch-icon.png' %}">
+</head>
+<body>
+{% with actual=request.resolver_match.url_name %}
+<header class="app">
+  <img class="logo" src="{% static 'img/logo-geype.png' %}" alt="GE&amp;PE Ingeniería" width="79" height="46">
+  <h1>Estudios Energía</h1>
+  {% if user.is_authenticated %}
+  <nav>
+    <a href="{% url 'inicio' %}" {% if actual == 'inicio' %}aria-current="page"{% endif %}>Expedientes</a>
+    <a href="{% url 'catalogo' %}" {% if actual == 'catalogo' %}aria-current="page"{% endif %}>Catálogo</a>
+    {% if user.is_staff %}
+      <a href="{% url 'usuarios' %}" {% if actual == 'usuarios' %}aria-current="page"{% endif %}>Usuarios</a>
+      <a href="{% url 'parametros' %}" {% if actual == 'parametros' %}aria-current="page"{% endif %}>Parámetros</a>
+      <a href="{% url 'admin:index' %}">Administración</a>
+    {% endif %}
+    <span class="usuario-chip">{{ user.get_full_name|default:user.username }}</span>
+    <form method="post" action="{% url 'logout' %}" style="margin:0">
+      {% csrf_token %}
+      <button type="submit" class="boton boton--secundario boton--sm">Salir</button>
+    </form>
+  </nav>
+  {% endif %}
+</header>
+{% endwith %}
+<main>
+  {% if messages %}
+    <ul class="mensajes">
+      {% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  {% block contenido %}{% endblock %}
+</main>
+{% if user.is_authenticated %}
+<footer class="app">
+  <span>GE&amp;PE Ingeniería · Gestión Energética</span>
+  <span>Estudios de renovación eléctrica · {% now "Y" %}</span>
+</footer>
+{% endif %}
+<script>
+  // No enviar el formulario al pulsar ENTER dentro de una casilla de texto
+  // (salvo en formularios marcados explícitamente, p. ej. el de acceso).
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    var t = e.target;
+    if (t.tagName !== "INPUT") return;
+    var tipo = (t.getAttribute("type") || "text").toLowerCase();
+    if (["submit", "button", "checkbox", "radio", "file", "image"].indexOf(tipo) !== -1) return;
+    if (t.closest("form.permite-enter")) return;
+    e.preventDefault();
+  });
+
+  // Pegado tipo Excel: si se pegan varias celdas (separadas por tabulador y/o
+  // salto de línea) sobre una casilla de una tabla, se reparten automáticamente
+  // en las casillas siguientes de esa fila y, si hay varias líneas, también hacia abajo.
+  document.addEventListener("paste", function (e) {
+    var t = e.target;
+    if (t.tagName !== "INPUT") return;
+    var tabla = t.closest("table");
+    if (!tabla) return;
+    var texto = (e.clipboardData || window.clipboardData).getData("text");
+    if (!texto) return;
+    var lineas = texto.replace(/\r/g, "").split("\n");
+    while (lineas.length && lineas[lineas.length - 1] === "") lineas.pop();
+    var filas = lineas.map(function (l) { return l.split("\t"); });
+    if (filas.length <= 1 && filas[0] && filas[0].length <= 1) return; // valor único: pegado normal
+
+    e.preventDefault();
+    var trsConInput = Array.prototype.filter.call(
+      tabla.querySelectorAll("tr"),
+      function (tr) { return tr.querySelector("input"); }
+    );
+    var filaActual = t.closest("tr");
+    var filaIdx = trsConInput.indexOf(filaActual);
+    var inputsFila = Array.prototype.slice.call(filaActual.querySelectorAll("input"));
+    var colIdx = inputsFila.indexOf(t);
+
+    for (var r = 0; r < filas.length; r++) {
+      var destTr = trsConInput[filaIdx + r];
+      if (!destTr) break;
+      var destInputs = destTr.querySelectorAll("input");
+      for (var c = 0; c < filas[r].length; c++) {
+        var destInput = destInputs[colIdx + c];
+        if (!destInput) break;
+        destInput.value = filas[r][c].trim();
+      }
+    }
+  });
+</script>
+</body>
+</html>

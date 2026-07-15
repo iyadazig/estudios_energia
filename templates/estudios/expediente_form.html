@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="tarjeta tarjeta-form tarjeta-form--md">
+  <div class="tarjeta-cabecera"><h2>{{ titulo|default:"Nuevo expediente" }}</h2></div>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="tarjeta-acciones" style="margin-top: var(--e4);">
+      <button type="submit" class="boton">{% if titulo %}Guardar cambios{% else %}Crear expediente{% endif %}</button>
+      <a class="boton--enlace" href="{% if titulo %}{% url 'expediente_detalle' form.instance.pk %}{% else %}{% url 'inicio' %}{% endif %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+<script>
+  (function () {
+    var estado = document.getElementById('id_estado');
+    var adj = document.getElementById('id_oferta_adjudicataria');
+    if (!estado || !adj) return;
+    var cont = adj.closest('p') || adj.parentNode;
+    function toggle() { cont.style.display = (estado.value === 'cerrado') ? '' : 'none'; }
+    estado.addEventListener('change', toggle);
+    toggle();
+  })();
+</script>
+{% endblock %}

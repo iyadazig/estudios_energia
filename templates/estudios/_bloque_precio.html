@@ -1,0 +1,19 @@
+<div class="bloque-precio">
+  <h4>{{ bloque.titulo }}</h4>
+  <div class="tabla-scroll">
+    <table>
+      <tr>
+        <th style="width:150px;"></th>
+        {% for per in periodos %}<th>P{{ per }}</th>{% endfor %}
+      </tr>
+      <tr>
+        <td><strong>Energía (€/kWh)</strong></td>
+        {% for v in bloque.energia %}<td><input type="text" name="e_{{ bloque.key }}_p{{ forloop.counter }}" value="{{ v }}"></td>{% endfor %}
+      </tr>
+      <tr>
+        <td><strong>Potencia (€/kW·año)</strong></td>
+        {% for v in bloque.potencia %}<td><input type="text" name="p_{{ bloque.key }}_p{{ forloop.counter }}" value="{{ v }}"></td>{% endfor %}
+      </tr>
+    </table>
+  </div>
+</div>

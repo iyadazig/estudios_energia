@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block titulo %}{{ cat.nombre }} · Catálogo{% endblock %}
+{% block contenido %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>{{ cat.nombre }}{% if cat.gdo %} 🌿{% endif %}</h2>
+    <div class="tarjeta-acciones">
+      <a class="boton boton--secundario" href="{% url 'catalogo_editar' cat.pk %}">✎ Renombrar</a>
+      <form method="post" action="{% url 'catalogo_borrar' cat.pk %}" style="display:inline;"
+            onsubmit="return confirm('¿Eliminar del catálogo «{{ cat.nombre }}»?');">
+        {% csrf_token %}
+        <button type="submit" class="boton boton--peligro">🗑 Eliminar</button>
+      </form>
+    </div>
+  </div>
+  <p class="texto-suave">
+    {{ cat.comercializadora }} · {{ cat.duracion_meses }} meses ·
+    GdO: {% if cat.gdo %}sí{% else %}no{% endif %}
+    {% if cat.creado_por %} · guardada por {{ cat.creado_por.get_full_name|default:cat.creado_por.username }}{% endif %}
+    {% if cat.creado %} el {{ cat.creado|date:"d/m/Y" }}{% endif %}
+  </p>
+  <p class="texto-suave">Para usar esta oferta, entra en un expediente →
+    <strong>Nueva oferta</strong> → <strong>Cargar desde catálogo</strong>.</p>
+</div>
+
+<div class="tarjeta">
+  <h3 style="margin-top:0;">Condiciones</h3>
+  <ul style="margin:0;">
+    <li>ATR de energía incluido en precios: <strong>{% if cat.atr_energia_incluido %}sí{% else %}no{% endif %}</strong></li>
+    <li>Cotiza precio propio de potencia: <strong>{% if cat.atr_potencia_incluido %}sí{% else %}no (ATR regulado){% endif %}</strong></li>
+  </ul>
+
+  <h3>Servicios de ajuste (SSAA)</h3>
+  <ul style="margin:0;">
+    <li>Tratamiento: <strong>{{ cat.get_ssaa_tipo_display }}</strong></li>
+    {% if cat.ssaa_tipo != 'incluido' %}
+      <li>Modo: <strong>{{ cat.get_ssaa_modo_display }}</strong></li>
+      {% if cat.ssaa_tipo == 'techo' %}<li>Techo (ref. superior): <strong>{{ cat.ssaa_ref_superior }} €/MWh</strong></li>{% endif %}
+      {% if cat.ssaa_tipo == 'banda' %}
+        <li>Referencia mínima / máxima: <strong>{{ cat.ssaa_ref_inferior }} / {{ cat.ssaa_ref_superior }} €/MWh</strong></li>
+      {% endif %}
+      <li>Pérdidas: <strong>{{ cat.get_ssaa_perdidas_modo_display }}{% if cat.ssaa_perdidas_modo == 'fija' %} ({{ cat.ssaa_perdidas_pct }} %){% endif %}</strong></li>
+      <li>Apuntamiento: <strong>{% if cat.ssaa_apuntamiento %}×{{ cat.ssaa_apuntamiento }}{% else %}no{% endif %}</strong></li>
+      <li>Impuesto municipal: <strong>{% if cat.ssaa_impuesto_municipal %}sí (×1,015){% else %}no{% endif %}</strong></li>
+    {% endif %}
+  </ul>
+
+  <h3>Precios por tarifa</h3>
+  {% if cat.precios.all %}
+    {% for pr in cat.precios.all %}
+    <div class="bloque-precio">
+      <h4>Tarifa {{ pr.tarifa }}</h4>
+      <div class="tabla-scroll">
+        <table>
+          <thead><tr><th></th><th class="num">P1</th><th class="num">P2</th><th class="num">P3</th><th class="num">P4</th><th class="num">P5</th><th class="num">P6</th></tr></thead>
+          <tbody>
+          <tr>
+            <td><strong>Energía (€/kWh)</strong></td>
+            <td class="num">{{ pr.energia_p1|default:"—" }}</td><td class="num">{{ pr.energia_p2|default:"—" }}</td><td class="num">{{ pr.energia_p3|default:"—" }}</td>
+            <td class="num">{{ pr.energia_p4|default:"—" }}</td><td class="num">{{ pr.energia_p5|default:"—" }}</td><td class="num">{{ pr.energia_p6|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td><strong>Potencia (€/kW·año)</strong></td>
+            <td class="num">{{ pr.potencia_p1|default:"—" }}</td><td class="num">{{ pr.potencia_p2|default:"—" }}</td><td class="num">{{ pr.potencia_p3|default:"—" }}</td>
+            <td class="num">{{ pr.potencia_p4|default:"—" }}</td><td class="num">{{ pr.potencia_p5|default:"—" }}</td><td class="num">{{ pr.potencia_p6|default:"—" }}</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="vacio"><p>Sin precios guardados.</p></div>
+  {% endif %}
+
+  <h3>Conceptos adicionales</h3>
+  {% if cat.conceptos.all %}
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>Nombre</th><th>Tipo</th><th class="num">Valor</th><th>Con pérdidas</th><th>× imp. local</th><th>Base IEE</th></tr></thead>
+      <tbody>
+      {% for con in cat.conceptos.all %}
+      <tr>
+        <td>{{ con.nombre }}</td>
+        <td>{{ con.get_tipo_display }}</td>
+        <td class="num">{{ con.valor }}</td>
+        <td>{% if con.con_perdidas %}sí{% else %}no{% endif %}</td>
+        <td>{% if con.con_impuesto_local %}sí{% else %}no{% endif %}</td>
+        <td>{% if con.entra_en_iee %}sí{% else %}no{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="vacio"><p>Sin conceptos adicionales.</p></div>
+  {% endif %}
+
+  {% if cat.observaciones %}
+  <h3>Observaciones</h3>
+  <p>{{ cat.observaciones }}</p>
+  {% endif %}
+
+  <p style="margin-top: var(--e4);"><a class="boton boton--secundario" href="{% url 'catalogo' %}">← Volver al catálogo</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Importar plantilla · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+<div class="tarjeta tarjeta-form tarjeta-form--md">
+  <div class="tarjeta-cabecera"><h2>Importar expediente desde la plantilla Excel</h2></div>
+  <p>Descarga la plantilla, rellena las hojas <strong>Cliente</strong>, <strong>Suministros</strong>
+     y <strong>Consumos</strong>, y súbela. Se creará el expediente con su cliente, puntos de
+     suministro y consumos.</p>
+  <p><a class="boton boton--secundario" href="{% url 'plantilla_estudio' %}">⬇ Descargar plantilla en blanco</a></p>
+  <form method="post" enctype="multipart/form-data" style="margin-top: var(--e4);">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="tarjeta-acciones" style="margin-top: var(--e4);">
+      <button type="submit" class="boton">Importar</button>
+      <a class="boton--enlace" href="{% url 'inicio' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% if resultado and resultado.errores %}
+<div class="tarjeta tarjeta-form tarjeta-form--md">
+  <div class="alerta alerta--error">
+    <h3>No se ha importado: corrige estos errores</h3>
+    <ul>{% for e in resultado.errores %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+  {% if resultado.avisos %}
+  <div class="alerta alerta--aviso">
+    <h3>Avisos</h3>
+    <ul>{% for a in resultado.avisos %}<li>{{ a }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

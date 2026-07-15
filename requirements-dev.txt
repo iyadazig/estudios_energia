@@ -1,0 +1,5 @@
+-r requirements.txt
+
+# --- Solo desarrollo / tests ---
+pytest==8.4.1
+pytest-django==4.11.1

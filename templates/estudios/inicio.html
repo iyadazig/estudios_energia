@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block titulo %}Expedientes · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+
+{# ---------------- Panel de indicadores ---------------- #}
+<div class="panel-kpis">
+  <div class="kpi kpi--acento">
+    <div class="kpi-cifra">{{ kpi_abiertos }}</div>
+    <div class="kpi-etiqueta">Expedientes abiertos</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-cifra">{{ kpi_cerrados }}</div>
+    <div class="kpi-etiqueta">Expedientes cerrados</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-cifra">{{ kpi_cups }}</div>
+    <div class="kpi-etiqueta">CUPS totales</div>
+  </div>
+  <div class="kpi">
+    <div class="kpi-cifra">{{ kpi_ofertas }}</div>
+    <div class="kpi-etiqueta">Ofertas registradas</div>
+  </div>
+  <div class="kpi {% if kpi_sin_ofertas %}kpi--aviso{% endif %}">
+    <div class="kpi-cifra">{{ kpi_sin_ofertas }}</div>
+    <div class="kpi-etiqueta">Sin ofertas todavía</div>
+  </div>
+</div>
+
+{# ---------------- Desglose por técnico (solo admin) ---------------- #}
+{% if es_admin and por_tecnico %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera"><h2>Expedientes por técnico</h2></div>
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>Técnico</th><th class="num">Abiertos</th><th class="num">Cerrados</th><th class="num">CUPS</th></tr></thead>
+      <tbody>
+      {% for t in por_tecnico %}
+        <tr>
+          <td>{% if t.gestor__first_name %}{{ t.gestor__first_name }} {{ t.gestor__last_name }}{% else %}{{ t.gestor__username }}{% endif %}</td>
+          <td class="num">{{ t.abiertos }}</td>
+          <td class="num">{{ t.cerrados }}</td>
+          <td class="num">{{ t.cups }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ---------------- Filtros ---------------- #}
+<div class="tarjeta">
+  <form method="get" class="filtros permite-enter">
+    <div class="filtros-grupo">
+      <label class="filtros-radio"><input type="radio" name="ambito" value="mios" {% if ambito == 'mios' %}checked{% endif %}> Mis expedientes</label>
+      <label class="filtros-radio"><input type="radio" name="ambito" value="todos" {% if ambito == 'todos' %}checked{% endif %}> Todos los expedientes</label>
+    </div>
+    <div class="filtros-grupo">
+      <label class="filtros-radio"><input type="radio" name="estado" value="abiertos" {% if estado == 'abiertos' %}checked{% endif %}> Expedientes abiertos</label>
+      <label class="filtros-radio"><input type="radio" name="estado" value="cerrados" {% if estado == 'cerrados' %}checked{% endif %}> Expedientes cerrados</label>
+      <label class="filtros-radio"><input type="radio" name="estado" value="todos" {% if estado == 'todos' %}checked{% endif %}> Abiertos y cerrados</label>
+    </div>
+    <div class="filtros-grupo">
+      <input type="text" name="q" value="{{ q }}" placeholder="nombre del cliente o código">
+      <button type="submit" class="boton boton--secundario boton--sm">Filtrar</button>
+      {% if q or estado != 'abiertos' %}<a class="boton--enlace" href="{% url 'inicio' %}">Limpiar</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+{# ---------------- Listado ---------------- #}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>Expedientes</h2>
+    <div class="tarjeta-acciones">
+      <a class="boton" href="{% url 'expediente_nuevo' %}">+ Nuevo expediente</a>
+      <a class="boton boton--secundario" href="{% url 'expediente_importar' %}">⇪ Importar desde Excel</a>
+    </div>
+  </div>
+  {% if expedientes %}
+  <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th><th>Cliente</th><th>CIF</th><th class="num">CUPS</th><th class="num">Ofertas</th>
+          <th>Gestor</th><th>Estado</th><th>Creado</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for e in expedientes %}
+        <tr>
+          <td><a href="{% url 'expediente_detalle' e.pk %}">{{ e.codigo }}</a></td>
+          <td>{{ e.cliente_razon_social }}</td>
+          <td>{{ e.cliente_cif }}</td>
+          <td class="num">{{ e.num_puntos }}</td>
+          <td class="num">{{ e.num_ofertas }}</td>
+          <td>{{ e.gestor.get_full_name|default:e.gestor.username }}</td>
+          <td><span class="badge badge--{{ e.estado }}">{{ e.get_estado_display }}</span></td>
+          <td>{{ e.creado|date:"d/m/Y" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <span class="icono">📁</span>
+    <p>No hay expedientes que coincidan con el filtro.</p>
+    <a class="boton" href="{% url 'expediente_nuevo' %}">+ Crear el primero</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

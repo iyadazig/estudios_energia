@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Parámetros · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+<div class="tarjeta tarjeta-form tarjeta-form--lg">
+  <div class="tarjeta-cabecera"><h2>Parámetros regulados — carga masiva</h2></div>
+  <p>Descarga la plantilla (viene <strong>prefijada con los valores actuales</strong>), modifica o añade
+     filas con las nuevas vigencias, y súbela. Hojas: <strong>Regulados</strong> (peajes, cargos,
+     pérdidas e impuesto local por tarifa), <strong>Generales</strong> (IEE), <strong>SSAA</strong>
+     (serie mensual estimada) y <strong>ProfileFactors</strong> (perfiles horarios por mes y periodo).</p>
+  <p>
+    <a class="boton boton--secundario" href="{% url 'parametros_plantilla' %}">⬇ Descargar plantilla con valores actuales</a>
+  </p>
+  <form method="post" enctype="multipart/form-data" style="margin-top: var(--e4);">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="boton">⇪ Subir plantilla rellenada</button>
+  </form>
+  <p class="texto-suave" style="margin-top: var(--e4);">
+    Las filas se identifican por tipo + término + tarifa + vigencia de inicio: si ya existe esa
+    combinación se actualiza, si no se crea. Todo lo importado queda
+    <strong>pendiente de validar</strong>. Para retoques puntuales, usa
+    <a href="{% url 'admin:estudios_parametroregulado_changelist' %}">el panel de administración</a>.
+  </p>
+</div>
+
+{% if resultado.errores %}
+<div class="tarjeta tarjeta-form tarjeta-form--lg">
+  <div class="alerta alerta--error">
+    <h3>No se ha importado nada: corrige estos errores</h3>
+    <ul>{% for e in resultado.errores %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

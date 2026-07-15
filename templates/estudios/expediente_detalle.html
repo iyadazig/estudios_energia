@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% load estudios_extras %}
+{% block titulo %}{{ expediente.codigo }} · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>{{ expediente.codigo }} — {{ expediente.cliente_razon_social }}
+        <span class="badge badge--{{ expediente.estado }}">{{ expediente.get_estado_display }}</span></h2>
+    <div class="tarjeta-acciones">
+      <a class="boton boton--secundario" href="{% url 'expediente_editar' expediente.pk %}">✎ Editar expediente</a>
+    </div>
+  </div>
+  <p style="margin-bottom: 0;">
+    CIF: {{ expediente.cliente_cif }}
+    {% if expediente.cliente_direccion %} · {{ expediente.cliente_direccion }}{% endif %}
+    · Gestor: {{ expediente.gestor.get_full_name|default:expediente.gestor.username }}
+  </p>
+  {% if expediente.estado == 'cerrado' %}
+  <p style="margin: var(--e2) 0 0;">
+    {% if expediente.oferta_adjudicataria %}
+      <strong>Oferta adjudicataria:</strong> 🏆 {{ expediente.oferta_adjudicataria.etiqueta }}
+    {% else %}
+      <strong>Cerrado sin adjudicación</strong> (no se aceptó ninguna oferta).
+    {% endif %}
+  </p>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>Puntos de suministro ({{ expediente.puntos.count }})</h2>
+    <div class="tarjeta-acciones">
+      <a class="boton boton--secundario" href="{% url 'expediente_importar_puntos' expediente.pk %}">⇪ Importar CUPS y consumos</a>
+    </div>
+  </div>
+  {% if expediente.puntos.all %}
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>CUPS</th><th>Titular</th><th>Tarifa</th><th>Comercializadora</th><th>Modalidad</th><th>Potencia ATR</th></tr></thead>
+      <tbody>
+      {% for p in expediente.puntos.all %}
+      <tr>
+        <td>{{ p.cups }}</td>
+        <td>{{ p.titular|default:"—" }}</td>
+        <td>{{ p.tarifa }}</td>
+        <td>{{ p.comercializadora_actual|default:"—" }}</td>
+        <td>{{ p.get_modalidad_actual_display }}</td>
+        <td>{% if p.potencia_segun_atr %}Sí{% else %}No{% endif %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <span class="icono">🔌</span>
+    <p>Sin puntos de suministro todavía. Descarga la plantilla, rellena <strong>Suministros</strong>
+       y <strong>Consumos</strong>, y súbela con «Importar CUPS y consumos».</p>
+    <a class="boton" href="{% url 'expediente_importar_puntos' expediente.pk %}">⇪ Importar CUPS y consumos</a>
+  </div>
+  {% endif %}
+</div>
+
+{% if comparativo %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>Comparativo anual (sin IVA) — a fecha {{ comparativo.fecha|date:"d/m/Y" }}</h2>
+    <div class="tarjeta-acciones">
+      <a class="boton boton--secundario" href="{% url 'expediente_excel' expediente.pk %}">⬇ Excel</a>
+      <a class="boton boton--secundario" href="{% url 'expediente_pdf' expediente.pk %}">⬇ PDF</a>
+    </div>
+  </div>
+  {% if mejor %}
+  <div class="banner-mejor">
+    <span class="trofeo">🏆</span>
+    <div>
+      <div class="banner-titulo">Mejor oferta: {{ mejor.oferta.etiqueta }}{% if mejor.oferta.gdo %} 🌿{% endif %}</div>
+      <div class="banner-cifras">
+        <strong>{{ mejor.agregado.total|floatformat:2 }} €</strong>/año
+        {% if mejor.ahorro is not None %}
+          {% if mejor.ahorro < 0 %}
+            · ahorro de <strong>{{ mejor.ahorro_abs|floatformat:2 }} €</strong>
+            ({{ mejor.ahorro_pct|floatformat:1 }} %) frente al contrato actual
+          {% else %}
+            · {{ mejor.ahorro|floatformat:2 }} € más que el contrato actual
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if comparativo.avisos %}
+  <div class="alerta alerta--aviso">
+    <strong>Avisos del cálculo:</strong>
+    <ul style="margin: var(--e1) 0 0;">{% for a in comparativo.avisos %}<li>{{ a }}</li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+
+  <div class="tabla-scroll">
+  <table class="comparativo">
+    <thead>
+    <tr>
+      <th class="col-label"></th>
+      <th class="col-actual">Contrato actual</th>
+      {% for c in comparativo.columnas %}
+        <th class="{% if c.mejor %}col-mejor{% endif %}">
+          {% if c.ranking %}<span class="rank">{{ c.ranking }}º</span>{% endif %}
+          {{ c.oferta.etiqueta }}{% if c.oferta.gdo %} 🌿{% endif %}
+        </th>
+      {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <th class="col-label">ATR potencia (€)</th>
+      <td class="col-actual">{% if comparativo.actual %}{{ comparativo.actual.potencia|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{{ c.agregado.potencia|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    <tr>
+      <th class="col-label">Energía (€)</th>
+      <td class="col-actual">{% if comparativo.actual %}{{ comparativo.actual.energia|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{{ c.agregado.energia|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    {% for nombre in comparativo.conceptos_nombres %}
+    <tr>
+      <th class="col-label">{{ nombre }} (€)</th>
+      <td class="col-actual">{% if comparativo.actual %}{% if comparativo.actual.conceptos|incluye:nombre %}{{ comparativo.actual.conceptos|dict_get:nombre|floatformat:2 }}{% else %}<span class="inc-precio">incluido precio energía</span>{% endif %}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{% if c.agregado.conceptos|incluye:nombre %}{{ c.agregado.conceptos|dict_get:nombre|floatformat:2 }}{% else %}<span class="inc-precio">incluido precio energía</span>{% endif %}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    {% endfor %}
+    <tr>
+      <th class="col-label">Regularización SSAA (€)</th>
+      <td class="col-actual">{% if comparativo.actual %}{{ comparativo.actual.ssaa|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{% if c.oferta.ssaa_tipo == "incluido" %}<span class="inc-precio">incluido precio energía</span>{% else %}{{ c.agregado.ssaa|floatformat:2 }}{% endif %}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    <tr>
+      <th class="col-label">IEE (€)</th>
+      <td class="col-actual">{% if comparativo.actual %}{{ comparativo.actual.iee|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{{ c.agregado.iee|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    <tr class="fila-total">
+      <th class="col-label">TOTAL anual (€)</th>
+      <td class="col-actual">{% if comparativo.actual %}{{ comparativo.actual.total|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{{ c.agregado.total|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    <tr>
+      <th class="col-label">€/kWh medio</th>
+      <td class="col-actual">{% if comparativo.actual.eur_kwh %}{{ comparativo.actual.eur_kwh|floatformat:5 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}col-mejor{% endif %}">{% if c.completa %}{{ c.agregado.eur_kwh|floatformat:5 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    <tr class="fila-ahorro">
+      <th class="col-label">Ahorro (€)</th>
+      <td class="col-actual">—</td>
+      {% for c in comparativo.columnas %}
+        <td class="{% if c.mejor %}col-mejor {% endif %}{% if c.ahorro < 0 %}ahorra{% elif c.ahorro > 0 %}encarece{% endif %}">
+          {% if c.ahorro is not None %}{{ c.ahorro|floatformat:2 }}{% else %}—{% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+    <tr class="fila-ahorro">
+      <th class="col-label">Variación (%)</th>
+      <td class="col-actual">—</td>
+      {% for c in comparativo.columnas %}
+        <td class="{% if c.mejor %}col-mejor {% endif %}{% if c.ahorro < 0 %}ahorra{% elif c.ahorro > 0 %}encarece{% endif %}">
+          {% if c.ahorro_pct is not None %}{{ c.ahorro_pct|floatformat:1 }} %{% else %}—{% endif %}
+        </td>
+      {% endfor %}
+    </tr>
+    </tbody>
+  </table>
+  </div>
+
+  {% for c in comparativo.columnas %}
+    {% if c.oferta.observaciones %}
+      <p class="obs-oferta"><strong>{{ c.oferta.etiqueta }}:</strong> {{ c.oferta.observaciones }}</p>
+    {% endif %}
+  {% endfor %}
+
+  {% if grafico %}
+  <h3 style="margin-top: var(--e5);">Coste anual total (€)</h3>
+  <div class="grafico-v">
+    {% for barra in grafico %}
+    <div class="gv-col" title="{{ barra.label }}: {{ barra.total|floatformat:2 }} €">
+      <div class="gv-valor">{{ barra.total|floatformat:0 }} €</div>
+      <div class="gv-barra grafico-{{ barra.tipo }}" style="height: {{ barra.pct }}%;"></div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="grafico-v-labels">
+    {% for barra in grafico %}
+    <div class="gv-nombre">{% if barra.ranking %}<span class="rank">{{ barra.ranking }}º</span>{% endif %}{{ barra.label }}</div>
+    {% endfor %}
+  </div>
+  <p class="texto-suave" style="margin-top: var(--e2);">
+    Barra gris: contrato actual · verde: oferta más económica · azul: resto de ofertas.
+  </p>
+  {% endif %}
+</div>
+
+{% if detalle_cups|length > 1 %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera"><h2>Desglose por punto de suministro</h2></div>
+  {% for fila in detalle_cups %}
+  <h3 style="margin-bottom: var(--e1);">{{ fila.punto.cups }} ({{ fila.punto.tarifa }})</h3>
+  <div class="tabla-scroll" style="margin-bottom: var(--e4);">
+    <table>
+      <thead>
+        <tr>
+          <th></th><th>Contrato actual</th>
+          {% for c in comparativo.columnas %}<th>{{ c.oferta.etiqueta }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td><strong>TOTAL anual (€)</strong></td>
+        <td class="num">{% if fila.actual %}{{ fila.actual.total|floatformat:2 }}{% else %}—{% endif %}</td>
+        {% for d in fila.ofertas %}<td class="num">{% if d %}{{ d.total|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+      </tr>
+      <tr>
+        <td><strong>€/kWh medio</strong></td>
+        <td class="num">{% if fila.actual.eur_kwh %}{{ fila.actual.eur_kwh|floatformat:5 }}{% else %}—{% endif %}</td>
+        {% for d in fila.ofertas %}<td class="num">{% if d.eur_kwh %}{{ d.eur_kwh|floatformat:5 }}{% else %}—{% endif %}</td>{% endfor %}
+      </tr>
+      </tbody>
+    </table>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endif %}
+
+<div class="tarjeta">
+  <div class="tarjeta-cabecera">
+    <h2>Ofertas ({{ expediente.ofertas.count }})</h2>
+    <div class="tarjeta-acciones">
+      <a class="boton" href="{% url 'oferta_nueva' expediente.pk %}">+ Nueva oferta</a>
+    </div>
+  </div>
+  {% if expediente.ofertas.all %}
+  <div class="tabla-scroll">
+    <table>
+      <thead><tr><th>Comercializadora</th><th>Duración</th><th>GdO</th><th>Válida hasta</th><th>Gestor comercial</th><th></th></tr></thead>
+      <tbody>
+      {% for o in expediente.ofertas.all %}
+      <tr {% if o.pk == expediente.oferta_adjudicataria_id %}class="fila-destacada"{% endif %}>
+        <td>
+          <a href="{% url 'oferta_editar' expediente.pk o.pk %}">{{ o.etiqueta }}</a>
+          {% if o.pk == expediente.oferta_adjudicataria_id %} <span title="Adjudicataria">🏆</span>{% endif %}
+        </td>
+        <td>{{ o.duracion_meses }} meses</td>
+        <td>{% if o.gdo %}Sí{% else %}No{% endif %}</td>
+        <td>{{ o.fecha_validez|date:"d/m/Y"|default:"—" }}</td>
+        <td>{{ o.gestor_nombre|default:"—" }}</td>
+        <td style="white-space: nowrap;">
+          <a class="boton boton--secundario boton--sm" href="{% url 'oferta_editar' expediente.pk o.pk %}">✎ Editar</a>
+          <a class="boton boton--secundario boton--sm" href="{% url 'oferta_a_catalogo' expediente.pk o.pk %}" title="Guardar en el catálogo">★ A catálogo</a>
+          <form method="post" action="{% url 'oferta_borrar' expediente.pk o.pk %}" style="display: inline;"
+                onsubmit="return confirm('¿Eliminar la oferta {{ o.etiqueta }}?');">
+            {% csrf_token %}
+            <button type="submit" class="boton boton--peligro boton--sm">🗑</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <span class="icono">📄</span>
+    <p>Sin ofertas todavía. Añade la primera con «Nueva oferta».</p>
+    <a class="boton" href="{% url 'oferta_nueva' expediente.pk %}">+ Nueva oferta</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

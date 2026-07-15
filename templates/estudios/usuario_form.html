@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titulo %}{% if modo == 'nuevo' %}Nuevo usuario{% else %}Editar usuario{% endif %} · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+<div class="tarjeta tarjeta-form tarjeta-form--md">
+  <div class="tarjeta-cabecera">
+    <h2>{% if modo == 'nuevo' %}Nuevo usuario{% else %}Editar «{{ usuario.username }}»{% endif %}</h2>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alerta alerta--error">{{ form.non_field_errors }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="tarjeta-acciones" style="margin-top: var(--e4);">
+      <button type="submit" class="boton">{% if modo == 'nuevo' %}Crear usuario{% else %}Guardar cambios{% endif %}</button>
+      <a class="boton boton--enlace" href="{% url 'usuarios' %}">Cancelar</a>
+    </div>
+  </form>
+
+  {% if modo == 'editar' %}
+    <p class="texto-suave" style="margin-top: var(--e4);">
+      Para dar de baja a un técnico, desmarca <em>«Cuenta activa»</em>: dejará de poder entrar y no
+      aparecerá en los listados, pero se conservan sus expedientes. No se borra físicamente.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

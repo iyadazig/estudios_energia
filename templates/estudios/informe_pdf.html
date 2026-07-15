@@ -1,0 +1,223 @@
+{% load estudios_extras %}<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4 landscape; margin: 1.3cm; }
+  body { font-family: Helvetica, Arial, sans-serif; color: #4d4d4f; font-size: 9pt; }
+  h1 { font-size: 14pt; border-bottom: 2pt solid #be1e2d; padding-bottom: 2pt; margin: 0 0 3pt; }
+  /* Enunciados de sección: banda gris con filo rojo, bien visibles */
+  h2 {
+    font-size: 11pt; color: #fff; background-color: #4d4d4f; border-left: 5pt solid #be1e2d;
+    padding: 3pt 8pt; margin: 6pt 0 3pt;
+  }
+  .nota { font-size: 8.5pt; color: #666; }
+  .cabecera { text-align: center; margin-bottom: 2pt; }
+  .cabecera img { width: 82pt; height: 48pt; }
+  .banner {
+    background-color: #eaf5ea; border: 0.5pt solid #b6d7b6; border-left: 4pt solid #2e7d32;
+    padding: 6pt 9pt; margin: 6pt 0 8pt; color: #1e5b22; font-size: 10pt;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 8pt; table-layout: fixed; }
+  th, td { border: 0.5pt solid #b0b7c3; padding: 1.6pt 4pt; text-align: center;
+           word-wrap: break-word; overflow-wrap: break-word; }
+  th { background-color: #4d4d4f; color: #fff; font-size: 8pt; }
+  td.eti, th.eti { text-align: left; font-weight: bold; background-color: #f7f7f8; }
+  th.eti { width: 14%; background-color: #4d4d4f; }
+  td.act { background-color: #f7f7f8; font-style: italic; }
+  tr.total td { font-weight: bold; background-color: #f0f0f2; }
+  th.gan { background-color: #2e7d32; }
+  td.gan { background-color: #eaf5ea; }
+  tr.total td.gan { background-color: #d8edd8; }
+  .inc { font-size: 6.5pt; font-style: italic; color: #6b7280; }
+  .ahorra { color: #2e7d32; font-weight: bold; }
+  .encarece { color: #be1e2d; }
+  td.izq, th.izq { text-align: left; }
+</style>
+</head>
+<body>
+  <div class="cabecera">
+    <img src="{{ logo }}">
+    <div class="nota">Estudio de renovación de suministros eléctricos ·
+      {{ expediente.codigo }} · {{ comparativo.fecha|date:"d/m/Y" }}</div>
+  </div>
+
+  <h1>{{ expediente.cliente_razon_social }} (CIF {{ expediente.cliente_cif }})</h1>
+
+  {% if consumo %}
+  {% if not consumo.multiple %}
+    {% with f=consumo.fichas.0 %}
+    <h2>Datos del suministro</h2>
+    <table style="margin-bottom: 6pt;">
+      <tr>
+        <td class="eti" style="width: 14%;">CUPS</td><td class="izq">{{ f.punto.cups }}</td>
+        <td class="eti" style="width: 14%;">Tarifa de acceso</td><td class="izq">{{ f.punto.tarifa }}</td>
+      </tr>
+      <tr>
+        <td class="eti">Dirección</td><td class="izq" colspan="3">{{ f.punto.direccion|default:"—" }}</td>
+      </tr>
+      <tr>
+        <td class="eti">Comercializadora</td><td class="izq">{{ f.punto.comercializadora_actual|default:"—" }}</td>
+        <td class="eti">Fin de contrato</td><td class="izq">{{ f.punto.fecha_fin_contrato|date:"d/m/Y"|default:"—" }}</td>
+      </tr>
+      <tr>
+        <td class="eti">Potencias (kW)</td>
+        <td class="izq" colspan="3">{% for p in f.potencias %}P{{ forloop.counter }}: <b>{% if p is not None %}{{ p|floatformat:2 }}{% else %}—{% endif %}</b>{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+      </tr>
+    </table>
+    {% endwith %}
+  {% else %}
+    <h2>Resumen de suministros</h2>
+    <p class="nota" style="margin-bottom: 6pt;">Consumo anual total del expediente:
+       <b>{{ consumo.total_global|floatformat:0 }} kWh</b> en {{ consumo.fichas|length }} suministros.</p>
+    {% for f in consumo.fichas %}
+    <table style="margin-bottom: 6pt;">
+      <tr>
+        <td class="eti" style="width: 14%;">CUPS</td><td class="izq">{{ f.punto.cups }}</td>
+        <td class="eti" style="width: 14%;">Tarifa</td><td class="izq">{{ f.punto.tarifa }}</td>
+        <td class="eti" style="width: 14%;">Consumo anual</td><td class="izq">{{ f.total_anual|floatformat:0 }} kWh</td>
+      </tr>
+      <tr>
+        <td class="eti">Dirección</td><td class="izq" colspan="5">{{ f.punto.direccion|default:"—" }}</td>
+      </tr>
+      <tr>
+        <td class="eti">Potencias (kW)</td>
+        <td class="izq" colspan="5">{% for p in f.potencias %}P{{ forloop.counter }}: <b>{% if p is not None %}{{ p|floatformat:2 }}{% else %}—{% endif %}</b>{% if not forloop.last %} · {% endif %}{% endfor %}</td>
+      </tr>
+    </table>
+    {% endfor %}
+  {% endif %}
+
+  {% if consumo.multiple %}<pdf:nextpage />{% endif %}
+  <h2>Consumo mensual por periodo (kWh){% if consumo.multiple %} — agregado de todos los suministros{% endif %}</h2>
+  <table>
+    <thead><tr><th class="eti">Mes</th><th>P1</th><th>P2</th><th>P3</th><th>P4</th><th>P5</th><th>P6</th><th>Total</th></tr></thead>
+    <tbody>
+    {% for m in consumo.meses %}
+      <tr><td class="eti">{{ m.abr }}</td>{% for v in m.periodos %}<td>{{ v|floatformat:0 }}</td>{% endfor %}<td><b>{{ m.total|floatformat:0 }}</b></td></tr>
+    {% endfor %}
+      <tr class="total"><td class="eti">TOTAL</td>{% for v in consumo.totales_periodo %}<td>{{ v|floatformat:0 }}</td>{% endfor %}<td>{{ consumo.total_global|floatformat:0 }}</td></tr>
+      <tr><td class="eti">%</td>{% for v in consumo.pct_periodo %}<td>{{ v|floatformat:1 }} %</td>{% endfor %}<td><b>100,0 %</b></td></tr>
+    </tbody>
+  </table>
+
+  {% if grafico %}
+  <pdf:nextpage />
+  <h2>Estacionalidad del consumo{% if consumo.multiple %} — agregado de todos los suministros{% endif %}</h2>
+  <div style="text-align: center;">
+    <img src="{{ grafico }}" style="width: 740pt;">
+  </div>
+  <p class="nota" style="text-align: center; margin-top: 4pt;">
+    Consumo mensual desglosado por periodo tarifario, de enero a diciembre.
+    El histórico abarca {{ consumo.meses|length }} meses y suma
+    <b>{{ consumo.total_global|floatformat:0 }} kWh</b>.
+  </p>
+  {% endif %}
+
+  <pdf:nextpage />
+  {% endif %}
+
+  {% if mejor %}
+  <div class="banner">
+    &#9733; Mejor oferta: <b>{{ mejor.oferta.etiqueta }}{% if mejor.oferta.gdo %} (GdO){% endif %}</b>
+    — <b>{{ mejor.agregado.total|floatformat:2 }} €</b>/año
+    {% if mejor.ahorro is not None and mejor.ahorro < 0 %}
+      · ahorro de <b>{{ mejor.ahorro_abs|floatformat:2 }} €</b>
+      ({{ mejor.ahorro_pct|floatformat:1 }} %) frente al contrato actual
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <h2>Comparativo de ofertas a precio fijo</h2>
+  <p class="nota" style="margin: 0 0 4pt;">Importes anuales estimados sobre el consumo histórico aportado.
+     Base imponible sin IVA. Puntos de suministro: {{ comparativo.puntos|length }}.</p>
+  <table>
+    <thead>
+    <tr>
+      <th class="eti"></th>
+      <th>Contrato actual</th>
+      {% for c in comparativo.columnas %}
+        <th class="{% if c.mejor %}gan{% endif %}">{% if c.ranking %}{{ c.ranking }}º {% endif %}{{ c.oferta.etiqueta }}{% if c.oferta.gdo %} (GdO){% endif %}</th>
+      {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td class="eti">ATR potencia (€)</td>
+      <td class="act">{% if comparativo.actual %}{{ comparativo.actual.potencia|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{{ c.agregado.potencia|floatformat:2 }}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="eti">Energía (€)</td>
+      <td class="act">{% if comparativo.actual %}{{ comparativo.actual.energia|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{{ c.agregado.energia|floatformat:2 }}</td>{% endfor %}
+    </tr>
+    {% for nombre in comparativo.conceptos_nombres %}
+    <tr>
+      <td class="eti">{{ nombre }} (€)</td>
+      <td class="act">{% if comparativo.actual %}{% if comparativo.actual.conceptos|incluye:nombre %}{{ comparativo.actual.conceptos|dict_get:nombre|floatformat:2 }}{% else %}<span class="inc">incluido precio energía</span>{% endif %}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{% if c.agregado.conceptos|incluye:nombre %}{{ c.agregado.conceptos|dict_get:nombre|floatformat:2 }}{% else %}<span class="inc">incluido precio energía</span>{% endif %}</td>{% endfor %}
+    </tr>
+    {% endfor %}
+    <tr>
+      <td class="eti">Regularización SSAA (€)</td>
+      <td class="act">{% if comparativo.actual %}{{ comparativo.actual.ssaa|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{% if c.oferta.ssaa_tipo == "incluido" %}<span class="inc">incluido precio energía</span>{% else %}{{ c.agregado.ssaa|floatformat:2 }}{% endif %}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="eti">IEE (€)</td>
+      <td class="act">{% if comparativo.actual %}{{ comparativo.actual.iee|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{{ c.agregado.iee|floatformat:2 }}</td>{% endfor %}
+    </tr>
+    <tr class="total">
+      <td class="eti">TOTAL anual (€)</td>
+      <td class="act">{% if comparativo.actual %}{{ comparativo.actual.total|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{{ c.agregado.total|floatformat:2 }}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="eti">€/kWh medio</td>
+      <td class="act">{% if comparativo.actual.eur_kwh %}{{ comparativo.actual.eur_kwh|floatformat:5 }}{% else %}—{% endif %}</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan{% endif %}">{{ c.agregado.eur_kwh|floatformat:5|default:"—" }}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="eti">Ahorro (€)</td>
+      <td class="act">—</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan {% endif %}{% if c.ahorro < 0 %}ahorra{% elif c.ahorro > 0 %}encarece{% endif %}">{% if c.ahorro is not None %}{{ c.ahorro|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    <tr>
+      <td class="eti">Variación (%)</td>
+      <td class="act">—</td>
+      {% for c in comparativo.columnas %}<td class="{% if c.mejor %}gan {% endif %}{% if c.ahorro < 0 %}ahorra{% elif c.ahorro > 0 %}encarece{% endif %}">{% if c.ahorro_pct is not None %}{{ c.ahorro_pct|floatformat:1 }} %{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    </tbody>
+  </table>
+
+  {% if detalle_cups|length > 1 %}
+  <div style="page-break-before: always;">
+  <h2>Desglose por punto de suministro (total anual, €)</h2>
+  <table>
+    <thead>
+    <tr>
+      <th class="eti">CUPS</th><th>Tarifa</th><th>Contrato actual</th>
+      {% for c in comparativo.columnas %}<th class="{% if c.mejor %}gan{% endif %}">{% if c.ranking %}{{ c.ranking }}º {% endif %}{{ c.oferta.etiqueta }}</th>{% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for fila in detalle_cups %}
+    <tr>
+      <td class="eti">{{ fila.punto.cups }}</td>
+      <td>{{ fila.punto.tarifa }}</td>
+      <td class="act">{% if fila.actual %}{{ fila.actual.total|floatformat:2 }}{% else %}—{% endif %}</td>
+      {% for d in fila.ofertas %}<td>{% if d %}{{ d.total|floatformat:2 }}{% else %}—{% endif %}</td>{% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+
+  {% for c in comparativo.columnas %}
+    {% if c.oferta.observaciones %}<p class="nota"><strong>{{ c.oferta.etiqueta }}:</strong> {{ c.oferta.observaciones }}</p>{% endif %}
+  {% endfor %}
+</body>
+</html>

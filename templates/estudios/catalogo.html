@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Catálogo de ofertas · Estudios Energía GE&amp;PE{% endblock %}
+{% block contenido %}
+<div class="tarjeta">
+  <div class="tarjeta-cabecera"><h2>Catálogo de ofertas</h2></div>
+  <p class="texto-suave">Ofertas reutilizables. Para usar una, entra en un expediente →
+    <strong>Nueva oferta</strong> → <strong>Cargar desde catálogo</strong>. Para añadir al catálogo,
+    guarda una oferta existente con el botón <strong>★ A catálogo</strong>.</p>
+
+  {% if ofertas %}
+  <div class="tabla-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th><th>Comercializadora</th><th>Duración</th><th>GdO</th>
+          <th>SSAA</th><th>Tarifas con precio</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for o in ofertas %}
+      <tr>
+        <td><a href="{% url 'catalogo_detalle' o.pk %}">{{ o.nombre }}</a></td>
+        <td>{{ o.comercializadora }}</td>
+        <td>{{ o.duracion_meses }} meses</td>
+        <td>{% if o.gdo %}🌿 Sí{% else %}No{% endif %}</td>
+        <td>{{ o.get_ssaa_tipo_display }}</td>
+        <td>{% for p in o.precios.all %}{{ p.tarifa }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+        <td style="white-space:nowrap;">
+          <a class="boton boton--secundario boton--sm" href="{% url 'catalogo_editar' o.pk %}">✎ Renombrar</a>
+          <form method="post" action="{% url 'catalogo_borrar' o.pk %}" style="display:inline;"
+                onsubmit="return confirm('¿Eliminar del catálogo «{{ o.nombre }}»?');">
+            {% csrf_token %}
+            <button type="submit" class="boton boton--peligro boton--sm">🗑</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="vacio">
+    <span class="icono">★</span>
+    <p>El catálogo está vacío. Crea una oferta en un expediente y guárdala con «★ A catálogo» para reutilizarla después.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
