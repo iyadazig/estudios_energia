@@ -1,0 +1,19 @@
+# Despliegue en Render (https://render.com) — plan gratuito.
+# Crea el servicio con «New + → Blueprint» apuntando a este repositorio.
+services:
+  - type: web
+    name: estudios-energia-geype
+    runtime: python
+    plan: free
+    buildCommand: "bash build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true      # Render genera una clave secreta segura
+      - key: DEBUG
+        value: "False"
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: WEB_CONCURRENCY
+        value: "2"
+      # ALLOWED_HOSTS y CSRF se completan solos con RENDER_EXTERNAL_HOSTNAME.

@@ -1,10 +1,34 @@
-# Estudios Energía GEYPE
+# Estudios Energía GE&PE
 
 Aplicación web (Django) para elaborar **estudios comparativos de renovación de contratos
 eléctricos**: compara el coste anual estimado del contrato actual de un cliente frente a
 las ofertas de varias comercializadoras, calculando la factura anual sin IVA a partir del
 consumo histórico y de los parámetros regulados vigentes (peajes, cargos, pérdidas,
 impuesto local, IEE, SSAA). Exporta el resultado a **Excel** y **PDF**.
+
+> Proyecto desarrollado como **Trabajo Fin de Máster**.
+
+## 🔗 Enlaces del proyecto
+
+| Recurso | Enlace |
+|---|---|
+| **Aplicación desplegada (demo)** | _(pendiente de publicar — ver sección «Despliegue»)_ |
+| **Repositorio de código** | _(pendiente de publicar en GitHub)_ |
+| **Presentación (slides)** | _(pendiente de publicar)_ |
+
+## Stack tecnológico
+
+- **Lenguaje:** Python 3.12+
+- **Framework web:** Django 6.0 (plantillas del propio Django; sin framework JS de front)
+- **Base de datos:** SQLite (con capa ORM de Django; migrable a PostgreSQL sin tocar la app)
+- **Front-end:** HTML + CSS propio (sistema de diseño con variables en `static/css/app.css`),
+  JavaScript vanilla puntual (sin dependencias de front)
+- **Excel:** openpyxl (lectura de plantillas, escritura de informes y gráficos nativos)
+- **PDF:** xhtml2pdf (+ reportlab) y Pillow para los gráficos incrustados
+- **Configuración:** python-decouple (variables de entorno en `.env`)
+- **Estáticos en producción:** WhiteNoise
+- **Servidor de aplicación (producción):** Gunicorn (Linux) / Waitress (Windows)
+- **Tests:** framework de pruebas de Django (31 tests)
 
 ## Funcionalidades principales
 
@@ -52,10 +76,17 @@ impuesto local, IEE, SSAA). Exporta el resultado a **Excel** y **PDF**.
   por mes, independiente del año) y los **profile factors** (perfiles horarios por mes y
   periodo). Los retoques puntuales se hacen en el panel de administración de Django.
 - **Copia de seguridad** de la base de datos con un comando (ver más abajo).
-- **Autenticación**. Dos perfiles: **administrador** (staff: gestiona parámetros, usuarios
-  y el panel de administración) y **usuario normal** (trabaja con expedientes y ofertas).
-  Todos los usuarios ven y editan todos los expedientes (decisión para uso interno con
-  pocos usuarios de confianza).
+- **Portada tipo panel**: indicadores de un vistazo (expedientes abiertos/cerrados, CUPS
+  totales, ofertas, expedientes sin ofertas) y, para administradores, un **desglose por
+  técnico**. Filtros del listado por **ámbito** (mis expedientes / todos), **estado**
+  (abiertos / cerrados / ambos) y **búsqueda por cliente o código**.
+- **Autenticación y roles**. Dos perfiles: **administrador** (gestiona parámetros, usuarios
+  y el panel de administración) y **técnico** (trabaja con expedientes y ofertas; por
+  defecto ve los suyos, aunque puede consultar todos). **Gestión de usuarios desde la propia
+  app** (solo administradores): alta de técnicos, edición de datos y rol, restablecer
+  contraseña y activar/desactivar cuentas (la baja es lógica: conserva sus expedientes).
+- **Identidad corporativa GE&PE**: sistema de diseño unificado (paleta, tipografía,
+  componentes), logo y favicon, e interfaz responsive.
 
 ## Requisitos
 
@@ -92,6 +123,25 @@ python manage.py runserver 127.0.0.1:8000
 ```
 
 Abre <http://127.0.0.1:8000> e inicia sesión.
+
+## Usuario y contraseña de prueba
+
+Para poder probar la aplicación (login), ejecuta el comando de datos de demostración, que
+crea dos usuarios de prueba, carga los parámetros regulados y añade un expediente de ejemplo
+con datos sintéticos:
+
+```bash
+python manage.py seed_demo
+```
+
+| Perfil | Usuario | Contraseña |
+|---|---|---|
+| **Administrador** | `demo` | `Demo.2026` |
+| **Técnico** | `tecnico` | `Demo.2026` |
+
+> Estas credenciales son **solo para demostración/evaluación**. En la instancia desplegada
+> (ver «Enlaces del proyecto») el usuario `demo` ya está creado. Las contraseñas se pueden
+> personalizar con las variables de entorno `DEMO_ADMIN_PASS` y `DEMO_TECNICO_PASS`.
 
 ## Comandos de gestión
 
@@ -160,6 +210,33 @@ pytest
 Los tests verifican al céntimo el motor de cálculo (línea base, conceptos con pérdidas y
 SSAA, impuesto local, agregado por CUPS, ranking, precios por tarifa) y la validación de
 CUPS.
+
+## Despliegue
+
+El proyecto está preparado para desplegarse en un PaaS gratuito (p. ej. **Render**):
+
+- `whitenoise` sirve los estáticos; `gunicorn` es el servidor WSGI.
+- `build.sh` instala dependencias, ejecuta `collectstatic`, `migrate` y `seed_demo`.
+- `render.yaml` es el *blueprint* (genera `SECRET_KEY`, fija `DEBUG=False` y la versión de
+  Python). El dominio (`ALLOWED_HOSTS` / CSRF) se completa solo con `RENDER_EXTERNAL_HOSTNAME`.
+
+Pasos en Render: crear cuenta → **New + → Blueprint** apuntando al repositorio de GitHub →
+Render lee `render.yaml`, construye y publica. La URL resultante se añade en la tabla de
+«Enlaces del proyecto» del principio.
+
+> Nota: en el plan gratuito el almacenamiento es efímero (SQLite se reinicia en cada
+> despliegue), por eso `seed_demo` recrea en cada build los usuarios de prueba, los
+> parámetros y el expediente de ejemplo. Para una instalación **de producción real** en la
+> empresa se recomienda un servidor propio con disco persistente (o PostgreSQL).
+
+## Presentación
+
+La presentación del proyecto (slides) está disponible en la tabla «Enlaces del proyecto»
+del principio de este documento.
+
+## Licencia
+
+Código bajo licencia **MIT** (ver `LICENSE`).
 
 ## Notas
 

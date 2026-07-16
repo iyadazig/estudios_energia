@@ -29,7 +29,17 @@ SECRET_KEY = config("SECRET_KEY")
 # DEBUG=False por defecto (seguro). Pasa DEBUG=True en .env solo para desarrollo local.
 DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="").split(",")
+ALLOWED_HOSTS = [h.strip() for h in config("ALLOWED_HOSTS", default="").split(",") if h.strip()]
+
+# Orígenes de confianza para CSRF (esquema+dominio, separados por comas). Necesario
+# tras un proxy HTTPS como el de las plataformas de despliegue (Render, etc.).
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in config("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
+
+# En Render el dominio se conoce solo en runtime: se añade automáticamente.
+_render_host = config("RENDER_EXTERNAL_HOSTNAME", default="")
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_render_host}")
 
 
 # Application definition
@@ -46,6 +56,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise sirve los estáticos en producción (justo tras SecurityMiddleware).
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -129,6 +141,12 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # runserver sirve STATICFILES_DIRS directamente y no hace falta ejecutarlo.
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise: sirve los estáticos comprimidos y con hash en producción.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
+
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -140,7 +158,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
 # --- Seguridad ---
-CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="").split(",")
+# (ALLOWED_HOSTS y CSRF_TRUSTED_ORIGINS se definen arriba, junto a la lectura de .env.)
 
 # Refuerzo de cookies y cabeceras. Activo solo cuando se sirve por HTTPS.
 if not DEBUG:
@@ -149,6 +167,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30  # 30 días
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Tras el proxy HTTPS de la plataforma (Render, etc.): forzar HTTPS.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = "same-origin"
     X_FRAME_OPTIONS = "DENY"
