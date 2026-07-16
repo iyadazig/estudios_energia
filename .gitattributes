@@ -1,0 +1,3 @@
+# Los scripts de shell deben conservar saltos de línea LF (se ejecutan en Linux
+# durante el despliegue; con CRLF de Windows fallaría el intérprete).
+*.sh text eol=lf
