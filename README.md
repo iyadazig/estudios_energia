@@ -14,7 +14,7 @@ impuesto local, IEE, SSAA). Exporta el resultado a **Excel** y **PDF**.
 |---|---|
 | **Aplicación desplegada (demo)** | _(pendiente de publicar — ver sección «Despliegue»)_ |
 | **Repositorio de código** | _(pendiente de publicar en GitHub)_ |
-| **Presentación (slides)** | _(pendiente de publicar)_ |
+| **Presentación (slides)** | [`docs/Presentacion-TFM.pptx`](docs/Presentacion-TFM.pptx) ([PDF](docs/Presentacion-TFM.pdf)) — _añadir aquí la URL de Google Slides si se publica_ |
 
 ## Stack tecnológico
 
