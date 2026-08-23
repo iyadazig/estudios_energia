@@ -19,7 +19,7 @@ impuesto local, IEE, SSAA). Exporta el resultado a **Excel** y **PDF**.
 | **Repositorio de código** | <https://github.com/iyadazig/estudios_energia> |
 | **Presentación (slides)** | [`docs/Presentacion-TFM.pptx`](docs/Presentacion-TFM.pptx) ([PDF](docs/Presentacion-TFM.pdf)) — _añadir aquí la URL de Google Slides si se publica_ |
 | **Vídeo explicativo** | _(pendiente de publicar — YouTube o Google Drive)_ |
-| **Usuario de prueba** | `demo` / `Demo.2026` (administrador) · `tecnico` / `Demo.2026` (técnico) |
+| **Usuario de prueba** | `demo` / `Demo.2026` (administrador) · `tecnico` / `Demo.2026` y `noelia` / `Noelia.2026` (técnicos) |
 
 ## Stack tecnológico
 
@@ -143,6 +143,11 @@ python manage.py seed_demo
 |---|---|---|
 | **Administrador** | `demo` | `Demo.2026` |
 | **Técnico** | `tecnico` | `Demo.2026` |
+| **Técnico** | `noelia` | `Noelia.2026` |
+
+> Los datos de demostración incluyen **4 expedientes** repartidos entre los dos técnicos
+> (dos cada uno, uno de ellos cerrado con oferta adjudicataria), para poder ver en
+> funcionamiento los filtros de la portada (ámbito «mis expedientes / todos» y estado).
 
 > Estas credenciales son **solo para demostración/evaluación**. En la instancia desplegada
 > (ver «Enlaces del proyecto») el usuario `demo` ya está creado. Las contraseñas se pueden
