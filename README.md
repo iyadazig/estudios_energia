@@ -10,8 +10,6 @@ impuesto local, IEE, SSAA). Exporta el resultado a **Excel** y **PDF**.
 
 > **¿Vas a continuar el desarrollo (tú u otra IA)?** Lee primero
 > [`CONTEXT.md`](CONTEXT.md) (arquitectura, motor de cálculo, decisiones, trampas y roadmap).
-> Para traspasar el proyecto a otra IA hay un prompt de contexto listo en
-> [`docs/PROMPT-IA.md`](docs/PROMPT-IA.md).
 
 ## 🔗 Enlaces del proyecto
 
