@@ -309,6 +309,40 @@ def oferta_borrar(request, expediente_pk, pk):
 
 # --- Catálogo de ofertas reutilizables ---------------------------------
 
+def copiar_oferta_a_catalogo(oferta, nombre, observaciones="", creado_por=None):
+    """Copia una `Oferta` a una `OfertaCatalogo` reutilizable: condiciones + SSAA,
+    conceptos y precios POR TARIFA (precedencia genérico < por tarifa < por CUPS).
+    Devuelve la OfertaCatalogo creada. Reutilizable desde vistas y comandos."""
+    cat = OfertaCatalogo(**{c: getattr(oferta, c) for c in CONDICIONES_OFERTA})
+    cat.nombre = nombre
+    cat.observaciones = observaciones
+    cat.creado_por = creado_por
+    cat.save()
+    for con in oferta.conceptos.all():
+        ConceptoCatalogo.objects.create(oferta_catalogo=cat,
+                                        **{c: getattr(con, c) for c in CAMPOS_CONCEPTO})
+    tarifas_exp = {p.tarifa for p in oferta.expediente.puntos.all()}
+    precios = list(oferta.precios.all())
+    por_tarifa = {}
+    for pr in precios:  # genérico → todas las tarifas del expediente
+        if not pr.tarifa and not pr.punto_id:
+            for t in tarifas_exp:
+                por_tarifa[t] = pr
+    for pr in precios:  # por tarifa
+        if pr.tarifa and not pr.punto_id:
+            por_tarifa[pr.tarifa] = pr
+    for pr in precios:  # por CUPS concreto (override)
+        if pr.punto_id:
+            por_tarifa[pr.punto.tarifa] = pr
+    for tarifa, pr in por_tarifa.items():
+        PrecioCatalogo.objects.create(
+            oferta_catalogo=cat, tarifa=tarifa,
+            **{f"{t}_p{i}": getattr(pr, f"{t}_p{i}")
+               for t in ("energia", "potencia") for i in range(1, 7)},
+        )
+    return cat
+
+
 @login_required
 def oferta_a_catalogo(request, expediente_pk, pk):
     """Guarda una oferta del expediente como oferta de catálogo reutilizable."""
@@ -317,34 +351,9 @@ def oferta_a_catalogo(request, expediente_pk, pk):
         form = OfertaCatalogoNombreForm(request.POST)
         if form.is_valid():
             with transaction.atomic():
-                cat = OfertaCatalogo(**{c: getattr(oferta, c) for c in CONDICIONES_OFERTA})
-                cat.nombre = form.cleaned_data["nombre"]
-                cat.observaciones = form.cleaned_data["observaciones"]
-                cat.creado_por = request.user
-                cat.save()
-                for con in oferta.conceptos.all():
-                    ConceptoCatalogo.objects.create(oferta_catalogo=cat,
-                                                    **{c: getattr(con, c) for c in CAMPOS_CONCEPTO})
-                # Precios por tarifa (precedencia: genérico < por tarifa < por CUPS).
-                tarifas_exp = {p.tarifa for p in oferta.expediente.puntos.all()}
-                precios = list(oferta.precios.all())
-                por_tarifa = {}
-                for pr in precios:  # genérico → todas las tarifas del expediente
-                    if not pr.tarifa and not pr.punto_id:
-                        for t in tarifas_exp:
-                            por_tarifa[t] = pr
-                for pr in precios:  # por tarifa
-                    if pr.tarifa and not pr.punto_id:
-                        por_tarifa[pr.tarifa] = pr
-                for pr in precios:  # por CUPS concreto (override)
-                    if pr.punto_id:
-                        por_tarifa[pr.punto.tarifa] = pr
-                for tarifa, pr in por_tarifa.items():
-                    PrecioCatalogo.objects.create(
-                        oferta_catalogo=cat, tarifa=tarifa,
-                        **{f"{t}_p{i}": getattr(pr, f"{t}_p{i}")
-                           for t in ("energia", "potencia") for i in range(1, 7)},
-                    )
+                cat = copiar_oferta_a_catalogo(
+                    oferta, form.cleaned_data["nombre"],
+                    form.cleaned_data["observaciones"], request.user)
             messages.success(request, f"Oferta guardada en el catálogo como «{cat.nombre}».")
             return redirect("expediente_detalle", pk=expediente_pk)
     else:

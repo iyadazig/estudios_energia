@@ -23,7 +23,10 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from estudios.importador import LETRAS_CONTROL_CUPS
-from estudios.models import ConsumoMensual, Expediente, Oferta, PrecioOferta, PuntoSuministro
+from estudios.models import (
+    ConsumoMensual, Expediente, Oferta, OfertaCatalogo, PrecioOferta, PuntoSuministro,
+)
+from estudios.views import copiar_oferta_a_catalogo
 
 # Credenciales de demostración (documentadas en el README). Se pueden sobreescribir con
 # variables de entorno DEMO_ADMIN_PASS / DEMO_TECNICO_PASS / DEMO_NOELIA_PASS.
@@ -65,7 +68,7 @@ class Command(BaseCommand):
         Expediente.objects.filter(cliente_cif__in=cifs).delete()
 
         # puntos = lista de (dígitos CUPS, tarifa, dirección, escala de consumo)
-        self._expediente(
+        exp_pan = self._expediente(
             gestor=tecnico, razon="Panadería La Espiga (DEMO)", cif="B00000000",
             direccion="C/ Mayor 1, 28001 Madrid", estado="abierto",
             puntos=[("0011000000000042", "6.1TD", "C/ Mayor 1, 28001 Madrid", 1.0)],
@@ -76,7 +79,7 @@ class Command(BaseCommand):
                 ("ENDESA", "0.149", *INC),
                 ("TOTALENERGIES", "0.133", "banda", "22", "16"),
             ])
-        self._expediente(
+        exp_tal = self._expediente(
             gestor=tecnico, razon="Talleres Martín, S.L.", cif="B00000001",
             direccion="Polígono Industrial Sur, 45600 Talavera", estado="abierto",
             puntos=[
@@ -90,7 +93,7 @@ class Command(BaseCommand):
                 ("ACCIONA", "0.131", *INC),
                 ("NATURGY", "0.137", *INC),
             ])
-        self._expediente(
+        exp_hotel = self._expediente(
             gestor=noelia, razon="Hotel Costa Azul, S.A.", cif="A00000002",
             direccion="Paseo Marítimo 20, 29620 Torremolinos", estado="abierto",
             puntos=[("0011000000000228", "6.1TD", "Paseo Marítimo 20, 29620 Torremolinos", 2.4)],
@@ -113,6 +116,18 @@ class Command(BaseCommand):
             ])
         self.stdout.write(self.style.SUCCESS(
             "Creados 4 expedientes de ejemplo (2 por técnico; Talleres Martín con 2 CUPS)."))
+
+        # 4) Catálogo de ofertas: guardar 3 ofertas (una de tres expedientes) --
+        catalogo = [
+            (exp_pan, "TOTALENERGIES", "TOTALENERGIES 12M · banda SSAA (DEMO)"),
+            (exp_tal, "IBERDROLA", "IBERDROLA 12M · techo SSAA, multitarifa (DEMO)"),
+            (exp_hotel, "NATURGY", "NATURGY 12M · banda SSAA (DEMO)"),
+        ]
+        OfertaCatalogo.objects.filter(nombre__in=[n for _, _, n in catalogo]).delete()
+        for exp, comercializadora, nombre in catalogo:
+            oferta = exp.ofertas.filter(comercializadora=comercializadora).first()
+            copiar_oferta_a_catalogo(oferta, nombre, oferta.observaciones, creado_por=admin)
+        self.stdout.write(self.style.SUCCESS("Guardadas 3 ofertas en el catálogo."))
 
     # ------------------------------------------------------------------ helpers
     def _usuario(self, cred, nombre, apellido, staff):
