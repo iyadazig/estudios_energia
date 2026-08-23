@@ -18,7 +18,7 @@ impuesto local, IEE, SSAA). Exporta el resultado a **Excel** y **PDF**.
 | **Aplicación desplegada (demo)** | <https://estudios-energia-geype.onrender.com> |
 | **Repositorio de código** | <https://github.com/iyadazig/estudios_energia> |
 | **Presentación (slides)** | [`docs/Presentacion-TFM.pptx`](docs/Presentacion-TFM.pptx) ([PDF](docs/Presentacion-TFM.pdf)) — _añadir aquí la URL de Google Slides si se publica_ |
-| **Vídeo explicativo** | _(pendiente de publicar — YouTube o Google Drive)_ |
+| **Vídeo explicativo** | <https://www.loom.com/share/931f120c55c24cd192eafd7bef26fbdf> |
 | **Usuario de prueba** | `demo` / `Demo.2026` (administrador) · `tecnico` / `Demo.2026` y `noelia` / `Noelia.2026` (técnicos) |
 
 ## Stack tecnológico
